@@ -84,9 +84,9 @@ Sample Usage:
     sudo userdocker pull debian
     sudo userdocker load < image.tar.gz
 
-    # (nvidia-docker) extensions for nvidia GPU support
+    # (nvidia-docker) extensions for nvidia GPU support, see nvidia-smi -L for GPU IDs
     alias nvidia-userdocker='userdocker --executor=nvidia-docker'
-    NV_GPU=1,3,7 nvidia-userdocker run -it --rm nvcr.io/nvidia/tensorflow
+    NV_GPU="GPU-37f6b436-5153-16af-0d26-88b96cd391bf,MIG-af8113ae-fec4-52d4-9cd7-299e6db5f9c6" nvidia-userdocker run -it --rm nvcr.io/nvidia/tensorflow
     userdocker ps --gpu-used
     userdocker ps --gpu-free
 
@@ -107,7 +107,7 @@ Features:
    - enforce docker args
    - restrict port publishing
    - explicitly white-list available args to user
-   - restrict allowed GPU access / reservations via ``NV_GPU``
+   - restrict allowed GPU access / reservations via ``NV_GPU`` (using GPU IDs obtained from ``nvidia-smi -L``)
 
 - System wide config + overrides for individual groups, gids, users, uids.
 - Easy extensibility for further subcommands and args.
@@ -132,7 +132,7 @@ Afterwards, as ``userdocker-diffproml`` is written in python3 and not yet availa
 
 .. code-block:: bash
 
-    sudo pip3 install -U https://github.com/saviola777/userdocker/archive/diffproml-1.0.0.tar.gz
+    sudo pip3 install -U https://github.com/saviola777/userdocker/archive/diffproml-1.2.0.tar.gz
 
 The above is the preferable way of installation of the latest stable release.
 

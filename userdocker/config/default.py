@@ -183,7 +183,7 @@ ARGS_AVAILABLE = {
 #   flag, the user can append a "ro" to guard herself (even for
 #   VOLUME_MOUNTS_ALWAYS).
 # Example:
-# VOLUME_MOUNTS_DEFAULT = ['/netscratch:/netscratch', '/data:/input:ro']
+# VOLUME_MOUNTS_DEFAULT = ['/scratch:/scratch', '/data:/input:ro', '/foo:']
 VOLUME_MOUNTS_ALWAYS = []
 VOLUME_MOUNTS_AVAILABLE = []
 VOLUME_MOUNTS_DEFAULT = [
@@ -271,6 +271,8 @@ ENV_VARS_EXT = {
     ]
 }
 
+# How many CPU cores to assign to a container by default, 0 for all
+NUM_CPUS_DEFAULT = 0
 
 # nvidia docker specific settings
 # The following settings allow to restrict the way users can use nvidia GPUs

@@ -14,7 +14,7 @@ def init_cmd(args) -> list:
     - user arguments,
     - ARGS_DEFAULT if the user did not disable default arguments.
 
-    Later arguments to not overwrite earlier arguments.
+    Later arguments do not overwrite earlier arguments.
 
     Args:
         args (argparse.Namespace): Collected user arguments as well as executor

@@ -3,8 +3,10 @@
 import argparse
 import logging
 import os
+import random
 import re
 import subprocess
+import shlex
 
 from .. import __version__
 from ..config import ALLOWED_IMAGE_REGEXPS
@@ -13,6 +15,7 @@ from ..config import CAPS_ADD
 from ..config import CAPS_DROP
 from ..config import ENV_VARS
 from ..config import ENV_VARS_EXT
+from ..config import NUM_CPUS_DEFAULT
 from ..config import NV_ALLOW_OWN_GPU_REUSE
 from ..config import NV_ALLOWED_GPUS
 from ..config import NV_DEFAULT_GPU_COUNT_RESERVATION
@@ -34,6 +37,7 @@ from ..helpers.execute import exit_exec_cmd
 from ..helpers.logger import logger
 from ..helpers.nvidia import nvidia_get_available_gpus
 from ..helpers.parser import init_subcommand_parser
+from ..helpers.parser import split_into_arg_and_value
 
 
 def parser_run(parser):
@@ -113,12 +117,6 @@ def prepare_nvidia_docker_run(args):
     if nv_gpus:
         # the user has set NV_GPU, just check if it's ok
         nv_gpus = [g.strip() for g in nv_gpus.split(',')]
-        try:
-            nv_gpus = [int(gpu) for gpu in nv_gpus]
-        except ValueError as e:
-            raise UserDockerException(
-                "ERROR: Can't parse NV_GPU, use index notation: %s" % e
-            )
 
         if not (
                 NV_ALLOWED_GPUS == 'ALL'
@@ -175,6 +173,43 @@ def prepare_nvidia_docker_run(args):
         os.environ['NV_GPU'] = gpu_env
 
 
+def determine_cpu_params(args, cmd):
+    num_cpus = open('/proc/cpuinfo').read().count('processor\t:')
+
+    # No default number of CPUs and none specified by the user: nothing to do
+    if NUM_CPUS_DEFAULT == 0 and (not hasattr(args, 'cpus') or not args.cpus) \
+            and all([not s.startswith("--cpus=") for s in args.patch_through_args]):
+        return
+
+    pargs = args.patch_through_args
+
+    passthrough_cpus_value = None
+    if any([s.startswith("--cpus=") for s in pargs]):
+        cpu_arg = pargs[[i for i in range(len(pargs))
+                         if pargs[i].startswith("--cpus=")][0]]
+        passthrough_cpus_value = split_into_arg_and_value(cpu_arg)[1]
+
+    passthrough_cpuset_cpus_value = None
+    if any([s.startswith("--cpuset-cpus=") for s in pargs]):
+        cpuset_cpus_arg = pargs[[i for i in range(len(pargs)) if
+                            pargs[i].startswith("--cpuset-cpus=")][0]]
+        passthrough_cpuset_cpus_value = split_into_arg_and_value(cpuset_cpus_arg)[1]
+
+    # Add --cpus if not given
+    if not hasattr(args, 'cpus') or not args.cpus:
+        args.cpus = int(passthrough_cpus_value) if passthrough_cpus_value else int(NUM_CPUS_DEFAULT)
+        if not passthrough_cpus_value:
+            cmd += ['--cpus', str(args.cpus)]
+
+    # Add --cpuset_cpus if not given
+    if not hasattr(args, 'cpuset-cpus') or not args.cpuset_cpus:
+        if not passthrough_cpuset_cpus_value:
+            cpu_indices = [str(x) for x in range(num_cpus)]
+            random.shuffle(cpu_indices)
+            args.cpuset_cpus = ",".join(cpu_indices[0:args.cpus])
+            cmd += ['--cpuset-cpus', str(args.cpuset_cpus)]
+
+
 def exec_cmd_run(args):
     """Execute the run subcommand."""
     cmd = init_cmd(args)
@@ -206,16 +241,7 @@ def exec_cmd_run(args):
             mounts += [user_mount]
             continue
 
-        # literal matches didn't work, allow potential unspecified
-        # container_path mounts
-        host_path = user_mount.split(':')[0]
-        if host_path in mounts:
-            continue
-        if user_mount in mounts_available:
-            mounts += [user_mount]
-            continue
-
-        # check if the user appended a 'ro' flag
+        # literal matches didn't work, check if the user appended a 'ro' flag
         if len(user_mount.split(':')) == 3:
             host_path, container_path, flag = user_mount.split(':')
             if flag == 'ro':
@@ -227,6 +253,12 @@ def exec_cmd_run(args):
                     continue
                 if st in mounts_available:
                     mounts += [user_mount]
+                    continue
+
+        # allow potentially unspecified container_path mounts
+        host_path = user_mount.split(':')[0] + ':'
+        if host_path in mounts:
+            continue
 
         raise UserDockerException(
             "ERROR: given mount not allowed: %s" % user_mount
@@ -245,8 +277,11 @@ def exec_cmd_run(args):
             os.listdir(ms)
 
     for mount in mounts:
+        if ':' not in mount:
+            raise UserDockerException(
+                "ERROR: anonymous mounts currently not supported: %s" % mount
+            )
         cmd += ["-v", mount]
-
 
     if args.executor == 'nvidia-docker':
         prepare_nvidia_docker_run(args)
@@ -257,6 +292,11 @@ def exec_cmd_run(args):
         "USERDOCKER_USER=%s" % user_name,
         "USERDOCKER_UID=%d" % uid,
     ]
+    if args.executor == 'nvidia-docker':
+        # remember which GPU was assigned to the container for ps --gpu-used
+        env_vars += [
+            "USERDOCKER_NV_GPU=%s" % os.environ['NV_GPU']
+        ]
     for env_var in env_vars:
         cmd += ['-e', env_var]
 
@@ -272,8 +312,10 @@ def exec_cmd_run(args):
     # add default container name if not specified by the user
     name = container_get_next_name(args.executor_path)\
         if not args.name else args.name
-    
+
     cmd += ['--name', name]
+
+    determine_cpu_params(args, cmd)
 
     # additional injection protection, deactivated for now due to nvidia-docker
     # inability to handle this
