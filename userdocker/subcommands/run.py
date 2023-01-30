@@ -140,7 +140,7 @@ def prepare_nvidia_docker_run(args):
         for g in nv_gpus:
             if g not in gpus_available:
                 msg = (
-                    'ERROR: GPU %d is currently not available!\nUse:\n'
+                    'ERROR: GPU %s is currently not available!\nUse:\n'
                     '"sudo userdocker ps --gpu-free" to find available GPUs.\n'
                     '"sudo userdocker ps --gpu-used" and "nvidia-smi" to see '
                     'status.' % g
