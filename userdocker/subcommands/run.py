@@ -298,7 +298,8 @@ def exec_cmd_run(args):
     if args.executor == 'nvidia-docker':
         # remember which GPU was assigned to the container for ps --gpu-used
         env_vars += [
-            "USERDOCKER_NV_VISIBLE_DEVICES=%s" % os.environ['NVIDIA_VISIBLE_DEVICES']
+            "USERDOCKER_NV_VISIBLE_DEVICES=%s" % os.environ['NVIDIA_VISIBLE_DEVICES'],
+            "NVIDIA_VISIBLE_DEVICES=%s" % os.environ['NVIDIA_VISIBLE_DEVICES']
         ]
         cmd += ["--runtime=nvidia"]
     for env_var in env_vars:
