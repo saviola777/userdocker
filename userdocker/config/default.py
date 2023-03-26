@@ -46,10 +46,10 @@ from . import uid, gid, user_name, group_name, user_home
 # ['DEBUG', 'INFO', 'WARNING', 'ERROR']
 LOGLVL = 'INFO'
 
-# Available executors for users.
+# Available executors for users. nvidia-docker is now a tagging executor
 EXECUTORS = {
     'docker': '/usr/bin/docker',
-    'nvidia-docker': '/usr/bin/nvidia-docker',
+    'nvidia-docker': '/usr/bin/docker',
 }
 EXECUTOR_DEFAULT = 'docker'
 

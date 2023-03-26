@@ -1,3 +1,18 @@
+userdocker-diffproml Version 2.0.0
+=============
+
+This is a major release.
+
+Backwards incompatibilities:
+----------------------------
+
+- nvidia-docker 1.0 is no longer supported. Instead of using the nvidia-docker
+  executable, the nvidia-docker executor will now trigger the inclusion of
+  ``--runtime=nvidia`` in a call to docker. You will need to change the executor
+  in the config file. For users, the only change is that the environment
+  variable to specify GPUs is called ``NVIDIA_VISIBLE_DEVICES`` instead of
+  ``NV_GPU``
+
 userdocker-diffproml Version 1.2.0
 =============
 

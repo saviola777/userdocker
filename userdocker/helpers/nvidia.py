@@ -85,7 +85,7 @@ def container_find_userdocker_user_uid_gpus(container_env):
     pairs = [var.partition('=') for var in container_env]
     users = [v for k, _, v in pairs if k == 'USERDOCKER_USER']
     uids = [v for k, _, v in pairs if k == 'USERDOCKER_UID']
-    gpus = [v for k, _, v in pairs if k == 'USERDOCKER_NV_GPU']
+    gpus = [v for k, _, v in pairs if k == 'USERDOCKER_NV_VISIBLE_DEVICES']
     if gpus:
         gpus = gpus[0].split(',')
     return users[0] if users else '', uids[0] if uids else None, gpus
