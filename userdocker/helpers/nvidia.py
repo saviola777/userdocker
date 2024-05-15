@@ -31,13 +31,13 @@ def get_gpu_and_mig_uuids(nvidia_smi) -> dict:
     gpu_uuid = None
     mig_uuids = {}
     for line in gpu_list_str.split("\n"):
-        result = re.search("(UUID: GPU-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})", line)
+        result = re.search("(GPU-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})", line)
         if result is not None:
             gpu_uuid = result.group(1)
             mig_uuids[gpu_uuid] = []
 
         result = re.search(
-                "(UUID: MIG-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})", line)
+                "(MIG-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})", line)
         if result is not None:
             mig_uuids[gpu_uuid].append(result.group(1))
 
